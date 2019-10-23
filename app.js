@@ -1,24 +1,38 @@
-d3.json('./countries.json', function(error, data) {
-  if(error) throw error;
+d3.queue()
+  .defer(d3.json, './countries.json')
+  .defer(d3.csv, './simplemaps-worldcities-basic.csv',function(row) {
+    if(+row.pop < 1000000) return;
+    return {
+      cityName: row.city,
+      countryCode: row.iso2,
+      population: +row.pop
+    };
+  })
+  .await(function(error, countries, cities) {
+    if(error) throw error;
 
-  d3.select('body')
-    .selectAll('h3')
-    .data(data.geonames)
-    .enter()
-    .append('h3')
-    .text(d => d.countryName);
-});
+    var data = countries.geonames.map(country => {
+      country.cities = 
+        cities.filter(city => 
+          city.countryCode === country.countryCode
+        );
+      return country;
+    });
 
-d3.csv('./simplemaps-worldcities-basic.csv',function(row) {
-  if(+row.pop < 1000000) return;
-  return {
-    cityName: row.city,
-    countryCode: row.iso2,
-    population: +row.pop
-  };
-}, function(error, data){
-  if(error) throw error;
+    var countrySelection = d3.select('body')
+      .selectAll('div')
+      .data(data)
+      .enter()
+      .append('div');
 
-  console.log(data);
-    
-});
+    countrySelection
+      .append('h3')
+      .text(d => d.countryName);
+
+    countrySelection
+      .append('ul')
+      .html(d => d.cities.map(city => {
+        var percentage = city.population / d.population * 100;
+        return`<li>${city.cityName} - ${city.population.toLocaleString()} ${percentage.toFixed(2)}%</li>`;
+      }).join(''));
+  });
