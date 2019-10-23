@@ -27,7 +27,7 @@ d3.queue()
 
     countrySelection
       .append('h3')
-      .text(d => d.countryName);
+      .text(d => `${d.countryName} - ${d.population.toLocaleString()}`);
 
     countrySelection
       .append('ul')
